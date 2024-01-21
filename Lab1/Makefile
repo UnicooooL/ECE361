@@ -1,11 +1,11 @@
 CC=gcc
 
-all: server client
-server: server.c
+all: server deliver
+server: server.o
     # $(CC) server.c -o server
-client: client.c
+deliver: deliver.o
     # $(CC) client.c -o client
 clean:
-    # rm -f server client
+	rm -f *.o server deliver
     # UnicooooL/ECE361/Makefile
    
