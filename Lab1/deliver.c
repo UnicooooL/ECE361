@@ -63,9 +63,11 @@ int main(int argc, char *argv[]) {
          // blank if correct
       }else{
          printf("Incorrect format. Please use the format 'ftp <file name>'.\n");
+         exit(EXIT_FAILURE); 
       }
     }else{
         printf("Error input size. Try again.\n");
+        exit(EXIT_FAILURE); 
     }
 
    /* Create a UDP socket */
