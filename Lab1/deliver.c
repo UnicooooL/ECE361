@@ -31,10 +31,12 @@ int main(int argc, char *argv[]) {
 
    // convert pirntable to network form
    int print_to_net = inet_pton(AF_INET, argv[1], &server_addr.sin_addr); // (format, data); here is  ':'; int 1 is success, 0 is wrong string, -1 is error
-   char ipstr [INET6_ADDRSTRLEN];
+   // testing
+   /* char ipstr [INET6_ADDRSTRLEN];
    inet_ntop(AF_INET, &(server_addr.sin_addr), ipstr, sizeof ipstr);
-   printf("IP address: %s", ipstr);
-   if(print_to_net != 1){ // fail
+   printf("IP address: %s", ipstr); */
+   // if fail
+   if(print_to_net != 1){ 
       fprintf(stderr, "network form fail\n");
          exit(EXIT_FAILURE);
    }
@@ -54,7 +56,7 @@ int main(int argc, char *argv[]) {
    char filename[1020]; // Buffer for the file name
 
    // Prompt user for input
-   printf("Enter command and file name (e.g., 'ftp filename.txt'): ");
+   printf("Enter command and file name (e.g., 'ftp filename.type'): ");
    if (fgets(input, sizeof(input), stdin) != NULL){
       // Parse input - expecting the format "ftp <file name>"
       if ((sscanf(input, "%3s %1019s", command, filename) == 2) && (strcmp(command, "ftp") == 0)){
