@@ -16,8 +16,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "e:/ECE361/ECE361/ECE361/Lab1",
-      "program": "e:/ECE361/ECE361/ECE361/Lab1/build/Debug/outDebug",
+      "cwd": "e:/ECE361/ECE361/ECE361/Lab1/Section2",
+      "program": "e:/ECE361/ECE361/ECE361/Lab1/Section2/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
