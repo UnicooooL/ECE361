@@ -16,7 +16,7 @@
 
 /* Defined the maximum segment size */
 #define MAX_DATA_SIZE 1000
-#define BUFFER 1024
+#define BUFFER 1100
 
 /* Given structure for pocket */
 typedef struct packet {
@@ -27,15 +27,7 @@ typedef struct packet {
     char filedata[MAX_DATA_SIZE];
 }packet;
 
-
-
-
-
-
-
-
-
-
+/* User defined */
 void packetToString(const struct packet *packet, void *result) {
     
     // Initialize string buffer
@@ -139,9 +131,9 @@ void stringToPacket(const void* str, struct packet *packet) {
 
 }
 
-void printPacket(struct packet *packet) {
-    printf("total_frag = %d,\n frag_no = %d, size = %d, filename = %s\n", packet -> total_frag, packet -> frag_no, packet -> size, packet -> filename);
-    char data[MAX_DATA_SIZE + 1] = {0};
-    memcpy(data, packet -> filedata, MAX_DATA_SIZE);
-    printf("%s", data);
-}
+// void printPacket(struct packet *packet) {
+//     printf("total_frag = %d,\n frag_no = %d, size = %d, filename = %s\n", packet -> total_frag, packet -> frag_no, packet -> size, packet -> filename);
+//     char data[MAX_DATA_SIZE + 1] = {0};
+//     memcpy(data, packet -> filedata, MAX_DATA_SIZE);
+//     printf("%s", data);
+// }

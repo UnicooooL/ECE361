@@ -13,7 +13,6 @@ int main(int argc, char *argv[]) {
    struct addrinfo hints; // declare
    struct sockaddr_in server_addr = {0};
    server_addr.sin_family = AF_INET; // set address family; specify using IPv4
-   //server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // specify the IP addr for socket; htonl is to ensure correct byte order for network (host to network long)
    server_addr.sin_port = htons(atoi(argv[2])); // host to network short
 
    // set up the hints
@@ -84,16 +83,15 @@ int main(int argc, char *argv[]) {
     size_t buffer_pos = 0;
     size_t bytes_to_send;
     struct sockaddr_storage client_addr;
+    char* ack;
     
 
 	/* To send pkt and receive ACK */
     for (unsigned int frag_no = 0; frag_no < total_fragments; ++frag_no) {
         
         //creat packet and update the info 
-        //struct packet* pkt_mal = malloc(BUFFER);
-        struct packet pkt;// = *pkt_mal;
+        struct packet pkt;
         strcpy(pkt.filename, filename);
-        //pkt.filename = (char*)filename;
         pkt.total_frag = total_fragments;
         pkt.frag_no = frag_no + 1;
         memset(pkt.filedata, 0, MAX_DATA_SIZE);
@@ -109,7 +107,6 @@ int main(int argc, char *argv[]) {
         /* create extra buffer */
         char buffer[BUFFER]; // Buffer size = packet size + max filename length
         packetToString(&pkt, buffer);
-        //printf("%s\n", buffer);
 
         /*
         // Reset buffer position for each packet
@@ -131,9 +128,6 @@ int main(int argc, char *argv[]) {
         timeout.tv_sec = 1;
         timeout.tv_usec = 0;
 
-        //============================================================
-        // clock_t t_send, t_rec;  // timer variables
-        // t_send = clock();
         // Send packet
         if (sendto(socket_FD, buffer, sizeof(buffer), 0, (const struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
             perror("Transmission failed. \n");
@@ -156,11 +150,8 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Received an incomplete ACK/NACK packet\n");
 			// Handle the incomplete packet, possibly by resending the data packet
 		} else {
-            // t_rec = clock();
-            // double time = (t_rec - t_send) / CLOCKS_PER_SEC;
-            // fprintf(stdout, "RTT = %f sec.\n", time);  
-        //=================================================================
             stringToPacket(ack_buf, &ack_pkt);
+            ack = ack_pkt.filedata;
 			// Successfully received an ACK/NACK packet, check its contents
 			if (strcmp(ack_pkt.filedata, "ACK") == 0 && ack_pkt.frag_no == pkt.frag_no) {
 				// Received the expected ACK, can send the next packet
@@ -176,8 +167,8 @@ int main(int argc, char *argv[]) {
 				frag_no = frag_no - 1;
 			}
 		}
-        //free(pkt_mal);
     }
+    printf("Ack doc content: %s\n", ack);
     // trans
     printf("==================================== \nFile %s transmission finished! \n", filename);
 
