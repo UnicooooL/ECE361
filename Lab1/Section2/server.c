@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
         //printf("%s\n", buffer);
         memset(rec_pkt.filename, 0, BUFFER);
         memset(rec_pkt.filedata, 0, MAX_DATA_SIZE);
-        stringToPacket(buffer, &rec_pkt); // recover to packet
+        StoP(buffer, &rec_pkt); // recover to packet
       
 		// create ack pkt
 		struct packet send_pkt;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
                 /* send ack doc for curr frag */
                 strcpy(send_pkt.filedata, "ACK\0"); // rewrite data
                 send_pkt.size = sizeof(send_pkt.filedata);
-                packetToString(&send_pkt, ack_info);
+                PtoS(&send_pkt, ack_info);
                 int m = sendto(socket_FD, ack_info, sizeof(ack_info), 0, (const struct sockaddr *) &client_addr, len);
                 if (m <= 0) { // not send
                     printf("Frag num %d ack doc transmission failed. \n", rec_frag+1);

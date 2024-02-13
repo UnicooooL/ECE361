@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 
         /* create extra buffer */
         char buffer[BUFFER]; // Buffer size = packet size + max filename length
-        packetToString(&pkt, buffer);
+        PtoS(&pkt, buffer);
 
         /*
         // Reset buffer position for each packet
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Received an incomplete ACK/NACK packet\n");
 			// Handle the incomplete packet, possibly by resending the data packet
 		} else {
-            stringToPacket(ack_buf, &ack_pkt);
+            StoP(ack_buf, &ack_pkt);
             ack = ack_pkt.filedata;
 			// Successfully received an ACK/NACK packet, check its contents
 			if (strcmp(ack_pkt.filedata, "ACK") == 0 && ack_pkt.frag_no == pkt.frag_no) {
