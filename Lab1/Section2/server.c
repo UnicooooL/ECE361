@@ -34,54 +34,93 @@ int main(int argc, char *argv[]) {
 /* -------------------------------------------------------------------------- */
 
     /* Receive messages from clients */
-    char buffer[1024];
-	struct packet rec_pkt;
+    char buffer[1024] = {0};
+	struct packet rec_pkt; // received pkt
     struct sockaddr_storage client_addr;
     socklen_t len = sizeof(client_addr);
+    char filename[1024] = "copy";
+    char* checking = NULL;
+    FILE *rec_file = NULL;
+    int rec_frag = 0;
 
     while (1) {
-        int n = recvfrom(socket_FD, &rec_pkt, sizeof(rec_pkt), 0, (struct sockaddr *) &client_addr, &len); // receive msg from a socket
+        int n = recvfrom(socket_FD, buffer, sizeof(buffer), 0, (struct sockaddr *) &client_addr, &len); // receive msg from a socket
         buffer[n] = '\0'; // Null-terminate the string
+        //printf("%s\n", buffer);
+        memset(rec_pkt.filename, 0, BUFFER);
+        memset(rec_pkt.filedata, 0, MAX_DATA_SIZE);
+        stringToPacket(buffer, &rec_pkt); // recover to packet
+      
+        // // Check the message and respond
+        // const char *msg;
+        // if (strcmp(buffer, "ftp") == 0) {
+        //     msg = "yes";
+        // } else {
+        //     msg = "no";
+        // }
 
-        // Check the message and respond
-        const char *msg;
-        if (strcmp(buffer, "ftp") == 0) {
-            msg = "yes";
-        } else {
-            msg = "no";
-        }
+        
 
 		// create ack pkt
-		struct packet send_pkt = rec_pkt;
+		struct packet send_pkt;
+        strcpy(send_pkt.filename, rec_pkt.filename);
+        send_pkt.frag_no = rec_pkt.frag_no;
+        char ack_info[BUFFER]; 
+        memset(ack_info, 0, BUFFER);
+
 		if (n > 0) { // received
-			send_pkt.filedata = "ACK"; // indicate ack send
-			FILE *rec_file = fopen(rec_pkt.filename, "wb"); // Open the file in binary write mode
-			if (file == NULL) {
-				perror("Failed to open file. \n");
-				exit(EXIT_FAILURE);
-			}
-			size_t bytes_written = fwrite(rec_pkt.filedata, 1, rec_pkt.size, rec_file);
-			if (bytes_written != rec_pkt.size) {
-				perror("Failed to write the complete data. \n");
-				// Handle the partial write error
-				exit(EXIT_FAILURE);
-			}
-			fclose(rec_file); // Close the file
+			//strcpy(send_pkt.filedata, "ACK"); // indicate ack send
 
+            /* name the local copied file */
+            //printf("\n\n\n\nFile name: %s \n", rec_pkt.filename);
+           
+            if (access(checking, F_OK) != 0) { // if exist
+                //printf("inside \n");
+                checking = strcat(filename, rec_pkt.filename); // copy+filename+extension+\0
+                rec_file = fopen(filename, "w"); // Open the file in binary write mode
+                if (rec_file == NULL) { // if not created correctly
+                    perror("Failed to open file. \n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            
+            /* copy file data */
+            //printf("%d\n", rec_pkt.size);
+            if (rec_frag + 1 == rec_pkt.frag_no) { // if curr frag not wrote
+                int bytes_written = fwrite(rec_pkt.filedata, sizeof(char), rec_pkt.size, rec_file);
+                //printf("%s\n", rec_pkt.filedata);
+               
+                if (bytes_written != rec_pkt.size) {
+                    perror("Failed to write the complete data. \n");
+                    // Handle the partial write error
+                    exit(EXIT_FAILURE);
+                }  
+                /* send ack doc for curr frag */
+                strcpy(send_pkt.filedata, "ACK\0"); // rewrite data
+                send_pkt.size = sizeof(send_pkt.filedata);
+                packetToString(&send_pkt, ack_info);
+                int m = sendto(socket_FD, ack_info, sizeof(ack_info), 0, (const struct sockaddr *) &client_addr, len);
+                if (m <= 0) { // not send
+                    printf("Frag num %d ack doc transmission failed. \n", rec_frag+1);
+                    exit(EXIT_FAILURE);
+                }
+                rec_frag++; // update frag number for tracking
+            }
+        //     // if fully received
+            if (rec_pkt.frag_no == rec_pkt.total_frag) {
+                printf("==================================== \nFile %s transmission finished! \n", filename);
+                break;
+            }
 
+        // // if not received file
 		}else {
-			send_pkt.filedata = "NACK";
-		}
-		sendto(socket_FD, &send_pkt, sizeof(send_pkt), 0, (const struct sockaddr *) &client_addr, len);
-
-		// if fully received
-		if (rec_pkt.frag_no == rec_pkt.total_frag) {
-			break;
+			printf("File receive failed, please try again, \n");
 		}
     }
 
-    // Close the socket
+    /* Close the socket and file */
     close(socket_FD);
+    fclose(rec_file); // Close the file
 
     return 0;
 }

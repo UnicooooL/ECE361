@@ -57,55 +57,100 @@ int main(int argc, char const *argv[])
         }
     }
 
-    Packet packet;
-    packet.filename = (char *) malloc(BUF_SIZE);
-    char filename[BUF_SIZE] = {0};
-    FILE *pFile = NULL;
-    bool *fragRecv = NULL;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /* defination */
+    Packet packet; // define packet
+    packet.filename = (char *) malloc(BUF_SIZE); // define filename's size
+    char filename[BUF_SIZE] = {0}; // local file name
+    FILE *pFile = NULL; // empty file
+    bool *fragRecv = NULL; // determine the frag number
+
+
+
+
+
+
     for (;;) {
-        if (recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen) == -1) {
-            printf("recvfrom error\n");
+
+        if (recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen) == -1) { // buf size = max size; buf store pocket in string
+            printf("recvfrom error\n"); // not receive
             exit(1);
         }
-        stringToPacket(buf, &packet);
-        if (!pFile) {
-            strcpy(filename, packet.filename);		
-            while (access(filename, F_OK) == 0) {
-                char *pSuffix = strrchr(filename, '.');
-                char suffix[BUF_SIZE + 1] = {0};
-                strncpy(suffix, pSuffix, BUF_SIZE - 1);
-                *pSuffix = '\0';
-                strcat(filename, " copy");
-                strcat(filename, suffix);
+
+        stringToPacket(buf, &packet); // recover to packet
+
+        if (!pFile) { // if the file create or not
+            strcpy(filename, packet.filename); // copy to local file name
+
+            while (access(filename, F_OK) == 0) { // check for existance
+                char *pSuffix = strrchr(filename, '.'); // store the location of '.' for local file name
+                char suffix[BUF_SIZE + 1] = {0}; // define a string to store the extension
+                strncpy(suffix, pSuffix, BUF_SIZE - 1); // store all data from '.' to the end of size into local storage
+                *pSuffix = '\0'; // original position of '.' is equal to termination char
+                strcat(filename, " copy"); // add 'copy' before the local filename extension
+                strcat(filename, suffix); // add the extension to local file name
             } 
-            pFile = fopen(filename, "w");
+            pFile = fopen(filename, "w"); // create the file
         }
-        if (!fragRecv) {
-            fragRecv = (bool *) malloc(packet.total_frag * sizeof(fragRecv));
+
+
+
+
+
+
+
+        if (!fragRecv) { // if this is th first segment
+            fragRecv = (bool *) malloc(packet.total_frag * sizeof(fragRecv)); // boolean array to check for received frag or not
             for (int i = 0; i < packet.total_frag; i++) {
-                fragRecv[i] = false;
+                fragRecv[i] = false; // initialization to false
             }
         }
-        if (!fragRecv[packet.frag_no]) {	
-            int numbyte = fwrite(packet.filedata, sizeof(char), packet.size, pFile);
-            if (numbyte != packet.size) {
-                printf("fwrite error\n");
+
+        if (!fragRecv[packet.frag_no]) { // if not wrote before	
+            int numbyte = fwrite(packet.filedata, sizeof(char), packet.size, pFile); // write the data into the copied func
+            if (numbyte != packet.size) { // if not fully received
+                printf("fwrite error\n"); // need sth to triger delete partial writing
                 exit(1);
             } 
-            fragRecv[packet.frag_no] = true;
+            fragRecv[packet.frag_no] = true; // flip the notation
         }
-        strcpy(packet.filedata, "ACK");
+        strcpy(packet.filedata, "ACK"); // rewrite file data of received packet (not the local one)
 
-        packetToString(&packet, buf);
+        packetToString(&packet, buf); // turn packet into string for transmission
+
+        /*send ack doc*/
         if ((sendto(sockfd, buf, BUF_SIZE, 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr))) == -1) {
             printf("sendto error\n");
             exit(1);
         }
+        // break for loop if transmission finished
         if (packet.frag_no == packet.total_frag) {
             printf("File %s transfer completed\n", filename);
             break;
         }
     }
+
+
+
+
+
+
+
+
+
 
     close(sockfd);
     fclose(pFile);

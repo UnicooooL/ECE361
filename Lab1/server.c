@@ -58,9 +58,11 @@ int main(int argc, char *argv[]) {
         const char *msg;
         if (strcmp(buffer, "ftp") == 0) {
             msg = "yes";
+            printf("%s", msg);
         } else {
             msg = "no";
         }
+        
         sendto(socket_FD, msg, strlen(msg), 0, (const struct sockaddr *) &client_addr, len);
     }
 

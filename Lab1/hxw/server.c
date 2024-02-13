@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
         perror("Checkpoint 2");
 
         if(frag_num == 1){
-            file = fopen(filename, "wb");
+            file = fopen("filename", "w");
             if(!file){
                 perror("Error in openning file for writing");
                 exit(1);

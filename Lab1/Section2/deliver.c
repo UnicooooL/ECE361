@@ -63,36 +63,55 @@ int main(int argc, char *argv[]) {
    }
 
    /* Open file */
-    FILE *file = fopen(filename, "rb");
+    FILE *file = fopen(filename, "r");
     if (file == NULL) {
         perror("Cannot open file. \n");
         exit(EXIT_FAILURE);
     }
 
    /* Find file size */
-    fseek(file, 0L, SEEK_END);
+    fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     rewind(file);
 
 	/* Calculate total fragments */
     unsigned int total_fragments = (file_size / MAX_DATA_SIZE) + (file_size % MAX_DATA_SIZE != 0); // e.g. 2100/1000=2.1; so 0.1 will be at the new packet
-
-	struct packet pkt;
-    pkt.filename = (char*)filename;
+    printf("Number of fragments: %d\n", total_fragments);
 
  // ----------------------------------------------------------------------------------------------------  
 
-	/* create extra buffer */
-    char buffer[sizeof(struct packet) + 255]; // Buffer size = packet size + max filename length
+	
     size_t buffer_pos = 0;
     size_t bytes_to_send;
+    struct sockaddr_storage client_addr;
+    
 
 	/* To send pkt and receive ACK */
     for (unsigned int frag_no = 0; frag_no < total_fragments; ++frag_no) {
+        
+        //creat packet and update the info 
+        //struct packet* pkt_mal = malloc(BUFFER);
+        struct packet pkt;// = *pkt_mal;
+        strcpy(pkt.filename, filename);
+        //pkt.filename = (char*)filename;
         pkt.total_frag = total_fragments;
         pkt.frag_no = frag_no + 1;
-        pkt.size = fread(pkt.filedata, 1, MAX_DATA_SIZE, file);
+        memset(pkt.filedata, 0, MAX_DATA_SIZE);
+        fread((void*)pkt.filedata, 1, MAX_DATA_SIZE, file);
+        if(frag_no < total_fragments){
+            pkt.size = MAX_DATA_SIZE;
+        }else{
+            // This packet is the last packet
+            pkt.size = (file_size -1) % MAX_DATA_SIZE + 1;
+        }
+        
 
+        /* create extra buffer */
+        char buffer[BUFFER]; // Buffer size = packet size + max filename length
+        packetToString(&pkt, buffer);
+        //printf("%s\n", buffer);
+
+        /*
         // Reset buffer position for each packet
         buffer_pos = 0;
 
@@ -105,45 +124,66 @@ int main(int argc, char *argv[]) {
         buffer_pos += pkt.size;
 
         // Now buffer_pos is the total number of bytes to send
-        bytes_to_send = buffer_pos;
+        bytes_to_send = buffer_pos;*/
 
+
+        struct timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        //============================================================
+        // clock_t t_send, t_rec;  // timer variables
+        // t_send = clock();
         // Send packet
-        if (sendto(sockfd, &pkt, sizeof(pkt), 0, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+        if (sendto(socket_FD, buffer, sizeof(buffer), 0, (const struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
             perror("Transmission failed. \n");
             exit(EXIT_FAILURE);
         }
 
         // Wait for ACK
-		struct packet ack_pkt;
-		int ack_len = recvfrom(sockfd, &ack_pkt, sizeof(ack_pkt), 0, NULL, NULL);
+        struct packet ack_pkt;
+		char ack_buf[BUFFER];
+        memset(ack_buf, 0, BUFFER);
+        
+        socklen_t len = sizeof(server_addr);
+		int ack_len = recvfrom(socket_FD, ack_buf, sizeof(ack_buf), 0, (struct sockaddr *) &server_addr, &len);
 
 		// Check if there was an error receiving the packet
 		if (ack_len < 0) {
 			perror("Error receiving ACK/NACK");
 			// Handle the error, possibly by resending the data packet
-		} else if (ack_len != sizeof(ack_pkt)) {
+		} else if (ack_len != sizeof(ack_buf)) {
 			fprintf(stderr, "Received an incomplete ACK/NACK packet\n");
 			// Handle the incomplete packet, possibly by resending the data packet
 		} else {
+            // t_rec = clock();
+            // double time = (t_rec - t_send) / CLOCKS_PER_SEC;
+            // fprintf(stdout, "RTT = %f sec.\n", time);  
+        //=================================================================
+            stringToPacket(ack_buf, &ack_pkt);
 			// Successfully received an ACK/NACK packet, check its contents
-			if (ack_pkt.filedata == "ACK" && ack_pkt.frag_no == pkt.frag_no) {
+			if (strcmp(ack_pkt.filedata, "ACK") == 0 && ack_pkt.frag_no == pkt.frag_no) {
 				// Received the expected ACK, can send the next packet
-			} else if (ack_pkt.filedata == "NACK") {
+			} else if(strcmp(ack_pkt.filedata, "ACK") != 0) {
 				// Received a NACK, must resend the current packet
-				fprintf(stderr, "Received NACK for fragment %u\n", pkt.frag_no);
+				fprintf(stderr, "Received ACK failed for fragment %u\n", pkt.frag_no);
 				// Resend
 				frag_no = frag_no - 1;
 			} else {
 				// Received an ACK for a different fragment, this could be an error or an out-of-order ACK
-				fprintf(stderr, "Received ACK for fragment %u, but expected %u\n", ack_pkt.ack_no, pkt.frag_no);
+				fprintf(stderr, "Received ACK for fragment %u, but expected %u\n", ack_pkt.frag_no, pkt.frag_no);
 				// Handle the unexpected ACK by resending the data packet
 				frag_no = frag_no - 1;
 			}
 		}
+        //free(pkt_mal);
+    }
+    // trans
+    printf("==================================== \nFile %s transmission finished! \n", filename);
 
     // Close file and socket
     fclose(file);
-    close(sockfd);
+    close(socket_FD);
 
     return 0;
 }

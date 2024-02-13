@@ -75,9 +75,11 @@ void send_file(char *filename, int sockfd, struct sockaddr_in serv_addr) {
     struct timeval timeout;
     timeout.tv_sec = 1;
     timeout.tv_usec = 0;
+    ///////set a socket option
     if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
         fprintf(stderr, "setsockopt failed\n");
     }
+    /////////
     int timesent = 0;   // Number of times a packet is sent
     socklen_t serv_addr_size = sizeof(serv_addr);
 
@@ -193,6 +195,9 @@ int main(int argc, char const *argv[])
         exit(1);
     }
 
+
+
+    /*section 1*/
     int numbytes;
     // send the message
     clock_t start, end;  // timer variables
@@ -201,13 +206,15 @@ int main(int argc, char const *argv[])
         fprintf(stderr, "sendto error\n");
         exit(1);
     }
-    
+
     memset(buf, 0, BUF_SIZE); // clean the buffer
     socklen_t serv_addr_size = sizeof(serv_addr);
+
     if((numbytes = recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr *) &serv_addr, &serv_addr_size)) == -1) {
         fprintf(stderr, "recvfrom error\n");
         exit(1);
     }
+
     end = clock();
     fprintf(stdout, "RTT = %f sec.\n", ((double) (end - start) / CLOCKS_PER_SEC));  
 
@@ -217,6 +224,7 @@ int main(int argc, char const *argv[])
     else {
         fprintf(stderr, "Error: File transfer can't start\n");
     }
+    ////////////////
 
 
     // Begin sending file and check for acknowledgements

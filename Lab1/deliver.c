@@ -8,6 +8,7 @@
 #include <netdb.h>
 #define _OPEN_SYS_SOCK_IPV6
 #include <arpa/inet.h>
+#include <time.h>
 
 int main(int argc, char *argv[]) {
    if (argc != 3) {
@@ -78,6 +79,8 @@ int main(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
    }
 
+   clock_t t_send, t_rec;  // timer variables
+   t_send = clock();
    /* Check existance of the file */
    if (access(filename, F_OK) == 0){ // F_OK as a flag
       printf("File '%s' exists. Waiting to send... \n", filename);
@@ -88,8 +91,9 @@ int main(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
    }
 
+   //sleep(5);
 /* -------------------------------------------------------------------------- */
-    /* Receive messages from clients */
+   /* Receive messages from clients */
    char buffer[1024];
    struct sockaddr_storage client_addr;
    socklen_t len = sizeof(client_addr);
@@ -98,8 +102,13 @@ int main(int argc, char *argv[]) {
    int n = recvfrom(socket_FD, (char *)buffer, 1024, 0, (struct sockaddr *) &client_addr, &len); // receive msg from a socket
    buffer[n] = '\0'; // Null-terminate the string
 
+   t_rec = clock();
+   double time = ((double) (t_rec - t_send)) / CLOCKS_PER_SEC;
+   fprintf(stdout, "RTT = %f sec.\n", time); 
+
    // Check the message and respond
    const char *msg;
+   printf(buffer);
    if (strcmp(buffer, "yes") == 0) {
       msg = "A file transfer can start. \n";
       printf(msg);
