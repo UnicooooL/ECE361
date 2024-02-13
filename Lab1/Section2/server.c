@@ -38,12 +38,14 @@ int main(int argc, char *argv[]) {
 	struct packet rec_pkt; // received pkt
     struct sockaddr_storage client_addr;
     socklen_t len = sizeof(client_addr);
-    char filename[1024] = "copy";
-    char* checking = NULL;
+	
+    
     FILE *rec_file = NULL;
     int rec_frag = 0;
 
     while (1) {
+		char filename[1024] = "copy";
+    	char* checking = NULL;
         int n = recvfrom(socket_FD, buffer, sizeof(buffer), 0, (struct sockaddr *) &client_addr, &len); // receive msg from a socket
         buffer[n] = '\0'; // Null-terminate the string
         //printf("%s\n", buffer);
@@ -61,7 +63,7 @@ int main(int argc, char *argv[]) {
 		if (n > 0) { // received
 
             /* name the local copied file */
-            if (access(checking, F_OK) != 0) { // if exist
+            if (rec_pkt.frag_no == 1) { // if exist
                 checking = strcat(filename, rec_pkt.filename); // copy+filename+extension+\0
                 rec_file = fopen(filename, "w"); // Open the file in binary write mode
                 if (rec_file == NULL) { // if not created correctly
@@ -94,13 +96,15 @@ int main(int argc, char *argv[]) {
             // if fully received
             if (rec_pkt.frag_no == rec_pkt.total_frag) {
                 printf("==================================== \nFile %s transmission finished! \n", filename);
+				fclose(rec_file);
             }
 
         // if not received file
 		}else {
 			printf("File receive failed, please try again, \n");
 		}
-        fclose(rec_file); // Close the file
+         // Close the file
+		 
     }
 
     /* Close the socket and file */
