@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
         /* quit */
         if(strncmp(input, "/quit",5) == 0) {
             if(logged_in){
-                //sock = connect_to_server(server_ip, server_port);
+                //sock = connect_to_server(server_ip, server_port); //@
                 struct message msg;
                 msg.type = EXIT;
                 strcpy((char*)msg.source, username);
@@ -85,9 +85,9 @@ int main(int argc, char *argv[]){
                 send_message(sock, msg);
 
                 close(sock);
-                printf("quit successfully\n");
             }
-            break;
+            printf("quit successfully\n");
+            exit(1);
         }
     ////////////////////////////////////////
         // Parse the input
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]){
         /* log out */
         if (strncmp(input, "/logout", 7) == 0){
             if(logged_in){
-                //sock = connect_to_server(server_ip, server_port);
+                //sock = connect_to_server(server_ip, server_port); //@
                 struct message msg;
                 msg.type = EXIT;
                 strcpy((char*)msg.source, username);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]){
 
         /* create session */
         }else if (sscanf(input, "/createsession %s", &sessionID) == 1){
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
 
             struct message msg;
             msg.type = NEW_SESS;
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]){
 
         /* join session */
         }else if(sscanf(input, "/joinsession %s", &sessionID) == 1){
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
             
                 struct message msg;
                 msg.type = JOIN;
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]){
     
         /* leave session */
         }else if(strncmp(input, "/leavesession", 13) == 0){
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
 
             struct message msg;
             msg.type = LEAVE_SESS;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]){
 
         /* print list */
         }else if (strncmp(input, "/list", 5) == 0){
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
 
             struct message msg;
             msg.type = QUERY;
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]){
 
         /* PRIVATE MSG */
         }else if (sscanf(input, "/privatemsg %s %s", &rec_username, &private_message) == 2){
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
             struct message msg;
             msg.type = PR_MSG;
             snprintf(msg.data, MAX_DATA, "%s %s", rec_username, private_message);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
 
         /* normal msg */
         }else{
-            //sock = connect_to_server(server_ip, server_port);
+            //sock = connect_to_server(server_ip, server_port); //@
             struct message msg;
             msg.type = MESSAGE;
             strcpy(msg.source, username);
@@ -271,21 +271,10 @@ void *receive_messages(void *arg) {
         int len = recv(sock, (char *)&msg, BUFFER_SIZE, 0);
         if (len <= 0) {
             printf("You have been disconnected from the server.\n");
-            // printf("Press 'R' to reconnect or any other key to exit.\n");
-            pthread_exit(NULL);  // Exit the thread
-            recv_thread_created = 0;
-            sleep(1);
-            // close(sock);
-            // sock = -1;
-            // logged_in = 0;
-            // char choice = getchar();
-            // if (choice == 'R' || choice == 'r') {
-            //     sleep(RECONNECT_DELAY);  // Define RECONNECT_DELAY as appropriate
-            //     reconnect();  // Function to handle reconnection logic
-            // }else{
-            //     exit(1);
-            // }
+            pthread_exit(NULL);
+            logged_in = 0;
         }
+    
         // handle cases
         switch(msg.type){
             case LO_ACK:

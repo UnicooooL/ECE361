@@ -131,7 +131,7 @@ int main(int argc, char **argv){
     //     perror("Failed to create timer thread");
     //     //continue;
     // }
-    // ///////////////////////////////////////
+    // ////////////////////////////////////////
 
     /* receive msg */
     while(1){
@@ -292,13 +292,14 @@ void *client_handler(void *socket_desc){
                 strcpy(nack_msg.data, response);
                 if (send(sock, &nack_msg, sizeof(nack_msg), 0) < 0) {
                     perror("Failed to send JN_NAK");
+
                 }
             }
         }
 
         /* leave the session */
         else if(msg.type == LEAVE_SESS){
-            int index = 0;
+            int index;
             // find user
             for(int i = 0; i < MAX_CLIENTS; i++){
                 if(strcmp(clients[i].id, (char*)msg.source) == 0 && clients[i].connection){
@@ -477,7 +478,8 @@ void check_inactivity() {
                 // send(clients[i].sockfd, (char *)&msg, sizeof(msg), 0);
                 printf("Client %s disconnected due to inactivity.\n", clients[i].id);
                 clients[i].connection = false;  // Mark as disconnected
-                close(clients[i].sockfd);
+                //close(clients[i].sockfd);
+                shutdown(clients[i].sockfd, SHUT_WR);
             }
             // 30s left
             else if (seconds == INACTIVITY_TIMEOUT - 30) {  // Send warning 30 seconds before logout
