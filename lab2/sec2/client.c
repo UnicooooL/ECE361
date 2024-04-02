@@ -57,7 +57,7 @@ int server_port;
 /* MAIN FUNCTION */
 int main(int argc, char *argv[]){
     // define
-    pthread_t recv_thread;
+    //pthread_t recv_thread;
     char input[MAX_DATA];
     char command[MAX_NAME], username[MAX_NAME], password[MAX_NAME];
     char private_message[MAX_DATA], rec_username[MAX_NAME];
@@ -108,14 +108,15 @@ int main(int argc, char *argv[]){
             //Send the login 
             send_message(sock, msg);
             logged_in = 1;
-            //if(!recv_thread_created){
+            if(!recv_thread_created){
                 if (pthread_create(&recv_thread, NULL, receive_messages, NULL) != 0) {
                     perror("Could not create receive thread");
                     return -1;
-              //  }else{
+                }else{
                     recv_thread_created = 1;
+                    
                 }
-            //}
+            }
             
             sleep(1);
             continue;
@@ -140,6 +141,8 @@ int main(int argc, char *argv[]){
                 close(sock);
                 sock = -1;
                 logged_in = 0;
+                pthread_cancel(recv_thread);
+                recv_thread_created = 0;
                 printf("Logout successfully\n");
             }
             else{
@@ -212,13 +215,15 @@ int main(int argc, char *argv[]){
         /*after log in */
         if(logged_in){
             
-           // if(!recv_thread_created){
+           if(!recv_thread_created){
                 if (pthread_create(&recv_thread, NULL, receive_messages, NULL) != 0) {
                     perror("Could not create receive thread");
                     return -1;
+                }else{
+                   recv_thread_created = 1; 
                 }
-                //recv_thread_created = 1;
-           // }
+                
+           }
         }
 
         sleep(1);
@@ -271,8 +276,10 @@ void *receive_messages(void *arg) {
         int len = recv(sock, (char *)&msg, BUFFER_SIZE, 0);
         if (len <= 0) {
             printf("You have been disconnected from the server.\n");
-            pthread_exit(NULL);
+            pthread_cancel(recv_thread);
+            //pthread_exit(NULL);
             logged_in = 0;
+            recv_thread_created = 0;
         }
     
         // handle cases
@@ -320,20 +327,3 @@ void *receive_messages(void *arg) {
 
 }
 
-
-void reconnect() {
-    // Establish a new connection
-    sock = connect_to_server(server_ip, server_port);
-    if (sock < 0) {
-        perror("Failed to reconnect");
-        exit(1);
-    } else {
-        printf("Reconnected to server.\n");
-        // Restart the receiving thread
-        if (pthread_create(&recv_thread, NULL, receive_messages, NULL) != 0) {
-            perror("Could not create receive thread");
-            exit(1);
-        }
-        recv_thread_created = 1;  // Mark the receiving thread as running
-    }
-}
